@@ -5,6 +5,8 @@ namespace KernelRag.Core.Stores;
 
 public sealed class QdrantVectorStore(HttpClient http, VectorStoreOptions options) : HttpVectorStore(http, options)
 {
+    private const int IndexingThresholdKb = 10;
+
     public override string Name => "qdrant";
     private string Path => $"collections/{Options.Collection}";
 
@@ -36,7 +38,7 @@ public sealed class QdrantVectorStore(HttpClient http, VectorStoreOptions option
             },
             ["optimizers_config"] = new JsonObject
             {
-                ["indexing_threshold"] = 10,
+                ["indexing_threshold"] = IndexingThresholdKb,
                 ["default_segment_number"] = 1,
             },
         };
@@ -62,7 +64,10 @@ public sealed class QdrantVectorStore(HttpClient http, VectorStoreOptions option
             var result = (await SendAsync(HttpMethod.Get, Path, null, ct))?["result"];
             var points = result?["points_count"]?.GetValue<long>() ?? 0;
             var indexed = result?["indexed_vectors_count"]?.GetValue<long>() ?? 0;
-            return result?["status"]?.GetValue<string>() == "green" && indexed >= points;
+            var size = result?["config"]?["params"]?["vectors"]?["size"]?.GetValue<long>() ?? 0;
+            // A collection under indexing_threshold is never indexed, so there is nothing to wait for.
+            var belowThreshold = points * size * sizeof(float) < IndexingThresholdKb * 1024;
+            return result?["status"]?.GetValue<string>() == "green" && (indexed >= points || belowThreshold);
         }, "the HNSW index to finish building", ct);
 
     public override async Task<IReadOnlyList<SearchHit>> SearchAsync(float[] vector, int k, CancellationToken ct = default)

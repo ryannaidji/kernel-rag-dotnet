@@ -118,6 +118,20 @@ public class StoreRequestTests
         Assert.Equal(16, body["hnsw_config"]!["m"]!.GetValue<int>());
     }
 
+    [Fact] public async Task Qdrant_SmallUnindexedCollectionIsReady()
+    {
+        var handler = new CapturingHandler(HttpStatusCode.OK, """{"result":{"status":"green","points_count":3,"indexed_vectors_count":0,"config":{"params":{"vectors":{"size":64}}}}}""");
+        await new QdrantVectorStore(Client(handler), Options).WaitUntilReadyAsync();
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact] public async Task Qdrant_LargeCollectionWaitsForIndex()
+    {
+        var handler = new CapturingHandler(HttpStatusCode.OK, """{"result":{"status":"green","points_count":2067,"indexed_vectors_count":0,"config":{"params":{"vectors":{"size":768}}}}}""");
+        var options = new VectorStoreOptions { Collection = "Docs", ReadyTimeoutSeconds = 0 };
+        await Assert.ThrowsAsync<VectorStoreException>(() => new QdrantVectorStore(Client(handler), options).WaitUntilReadyAsync());
+    }
+
     [Fact] public async Task Weaviate_BatchErrorsThrow()
     {
         var handler = new CapturingHandler(HttpStatusCode.OK, """[{"result":{"errors":{"error":[{"message":"bad"}]}}}]""");
