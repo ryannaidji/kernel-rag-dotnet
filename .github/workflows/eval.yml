@@ -79,6 +79,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         continue-on-error: true
         run: |
+          mkdir -p docs
           (Store__Provider=qdrant Store__Collection=KernelRagSquad Ollama__ChatModel="$CHAT_MODEL" \
             dotnet run --no-build -c Release --project src/KernelRag.Api --urls http://localhost:5080 > /tmp/api.log 2>&1 &)
           for i in $(seq 1 60); do curl -fs localhost:5080/api/health && break; sleep 1; done
