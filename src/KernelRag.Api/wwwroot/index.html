@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kernel-rag-dotnet</title>
+<style>
+body{font:16px system-ui,sans-serif;max-width:760px;margin:2rem auto;padding:0 1rem;color:#1c2330}
+form{display:flex;gap:.5rem}input{flex:1;padding:.6rem;font:inherit}button{padding:.6rem 1rem;font:inherit}
+#answer{background:#eef3fb;padding:1rem;border-radius:6px;white-space:pre-wrap;margin:1rem 0}
+.src{border-top:1px solid #d8dee9;padding:.6rem 0;font-size:.9rem}.src b{display:block}
+small{color:#5b6577}
+</style>
+</head>
+<body>
+<h1>kernel-rag-dotnet</h1>
+<p><small>Store: <span id="store">?</span>. Answers come from a local open-weight model and only from the retrieved passages.</small></p>
+<form id="f"><input id="q" placeholder="Ask a question about the indexed documents" required><button>Ask</button></form>
+<div id="answer" hidden></div>
+<div id="sources"></div>
+<script>
+const $ = id => document.getElementById(id);
+fetch('/api/health').then(r => r.json()).then(h => $('store').textContent = h.store);
+async function ask(question) {
+  $('answer').hidden = false; $('answer').textContent = 'Thinking...'; $('sources').replaceChildren();
+  const r = await fetch('/api/ask', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({question, k: 3})});
+  const d = await r.json();
+  $('answer').textContent = r.ok ? d.answer : (d.error || 'Request failed');
+  for (const s of d.sources || []) {
+    const div = document.createElement('div'); div.className = 'src';
+    const b = document.createElement('b'); b.textContent = `${s.title} (cosine ${s.score.toFixed(3)})`;
+    div.append(b, s.text.slice(0, 280) + '...'); $('sources').append(div);
+  }
+  document.body.dataset.done = '1';
+}
+$('f').addEventListener('submit', e => { e.preventDefault(); ask($('q').value); });
+const preset = new URLSearchParams(location.search).get('q');
+if (preset) { $('q').value = preset; ask(preset); }
+</script>
+</body>
+</html>

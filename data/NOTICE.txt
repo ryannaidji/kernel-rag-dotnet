@@ -1,0 +1,4 @@
+Derived from SQuAD 1.1 dev (https://rajpurkar.github.io/SQuAD-explorer/), Rajpurkar et al. 2016.
+License: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Passages come from Wikipedia.
+Modifications: converted to JSONL; passage ids added; one question per passage kept; 500 questions sampled with seed 42.
+The questions and answers are human-written, not synthetic.

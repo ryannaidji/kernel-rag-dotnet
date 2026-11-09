@@ -1,0 +1,98 @@
+name: eval
+
+# push: retrieval comparison with the recall@5 gate.
+# workflow_dispatch: the same plus answer groundedness and the demo; results are committed back.
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["evals/results/**", "docs/**", "**.md"]
+  workflow_dispatch:
+    inputs:
+      groundedness_sample:
+        description: Questions in the groundedness sample
+        default: "25"
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: "1"
+  QDRANT_IMAGE: qdrant/qdrant:v1.13.6
+  WEAVIATE_IMAGE: semitechnologies/weaviate:1.30.3
+  ELASTICSEARCH_IMAGE: docker.elastic.co/elasticsearch/elasticsearch:8.17.4
+  CHAT_MODEL: qwen2.5:1.5b
+  JUDGE_MODEL: qwen2.5:3b
+
+jobs:
+  compare-stores:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    services:
+      qdrant:
+        image: qdrant/qdrant:v1.13.6
+        ports: ["6333:6333"]
+      weaviate:
+        image: semitechnologies/weaviate:1.30.3
+        ports: ["8080:8080"]
+        env:
+          AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
+          PERSISTENCE_DATA_PATH: /var/lib/weaviate
+          DEFAULT_VECTORIZER_MODULE: none
+          CLUSTER_HOSTNAME: node1
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.17.4
+        ports: ["9200:9200"]
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          ES_JAVA_OPTS: -Xms1g -Xmx1g
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: bash scripts/wait_for_stores.sh
+      - name: Install Ollama and pull models
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          (ollama serve > /tmp/ollama.log 2>&1 &)
+          for i in $(seq 1 30); do curl -s localhost:11434/api/tags && break; sleep 1; done
+          ollama pull nomic-embed-text
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ollama pull "$CHAT_MODEL"
+            ollama pull "$JUDGE_MODEL"
+          fi
+      - run: dotnet build KernelRag.sln -c Release
+      - name: Run comparison (gate applied at the end)
+        run: |
+          SAMPLE=0
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then SAMPLE="${{ inputs.groundedness_sample }}"; fi
+          dotnet run --no-build -c Release --project src/KernelRag.Eval -- run \
+            --out evals/results/latest.json --gate evals/thresholds.json \
+            --groundedness "$SAMPLE" --chat-model "$CHAT_MODEL" --judge-model "$JUDGE_MODEL"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results
+          path: evals/results/latest.json
+      - name: Record demo against the indexed Qdrant collection
+        if: github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        run: |
+          (Store__Provider=qdrant Store__Collection=KernelRagSquad Ollama__ChatModel="$CHAT_MODEL" \
+            dotnet run --no-build -c Release --project src/KernelRag.Api --urls http://localhost:5080 > /tmp/api.log 2>&1 &)
+          for i in $(seq 1 60); do curl -fs localhost:5080/api/health && break; sleep 1; done
+          curl -fs -X POST localhost:5080/api/ask -H 'Content-Type: application/json' \
+            -d '{"question":"Which team won Super Bowl 50?","k":3}' | python3 -m json.tool > docs/demo_output.json
+          npx -y playwright@1.49.1 install --with-deps chromium
+          npx -y playwright@1.49.1 screenshot --full-page --wait-for-selector 'body[data-done="1"]' --timeout 300000 \
+            'http://localhost:5080/?q=Which%20team%20won%20Super%20Bowl%2050%3F' docs/demo.png
+      - name: Commit results
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add evals/results docs
+          git commit -m "Update eval results from run ${{ github.run_id }}" || exit 0
+          git pull --rebase origin main
+          git push

@@ -1,0 +1,7 @@
+{
+  "min_recall_at_5": {
+    "qdrant": 0.5,
+    "weaviate": 0.5,
+    "elasticsearch": 0.5
+  }
+}
