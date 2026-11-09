@@ -1,0 +1,187 @@
+{
+  "generated_at_utc": "2026-11-09T01:13:41Z",
+  "conditions": {
+    "runner": "GitHub Actions 1000000712",
+    "runner_os": "Unix 7.0.0.1019",
+    "logical_cpus": 4,
+    "total_memory_gb": 15.6084,
+    "commit": "452ca3b5574bf3e93b02a17650ef8b073ea48b03",
+    "github_run_id": "42541602496",
+    "images": {
+      "qdrant": "qdrant/qdrant:v1.13.6",
+      "weaviate": "semitechnologies/weaviate:1.30.3",
+      "elasticsearch": "docker.elastic.co/elasticsearch/elasticsearch:8.17.4"
+    },
+    "dataset": "SQuAD 1.1 dev (human-written questions; CC BY-SA 4.0)",
+    "passages": 2067,
+    "questions": 500,
+    "embedding_model": "nomic-embed-text",
+    "embedding_dimensions": 768,
+    "embedding_seconds_for_passages": 555.5496,
+    "hnsw": {
+      "m": 16,
+      "ef_construction": 100,
+      "ef_search": 100
+    },
+    "k_fetched": 10,
+    "warmup_queries_excluded": 50,
+    "index_trials": 3,
+    "client": "single-threaded sequential HTTP from one .NET process on the same host as the containers"
+  },
+  "stores": {
+    "qdrant": {
+      "recall_at_1": 0.75,
+      "recall_at_3": 0.904,
+      "recall_at_5": 0.95,
+      "recall_at_5_ci95": [
+        0.9272,
+        0.9659
+      ],
+      "recall_at_10": 0.972,
+      "mrr": 0.832,
+      "indexing_seconds_median": 1.19,
+      "indexing_seconds_trials": [
+        1.7146,
+        1.19,
+        1.0715
+      ],
+      "query_latency_ms_p50": 1.4664,
+      "query_latency_ms_p95": 1.7623,
+      "in_process_baseline": false
+    },
+    "weaviate": {
+      "recall_at_1": 0.748,
+      "recall_at_3": 0.902,
+      "recall_at_5": 0.948,
+      "recall_at_5_ci95": [
+        0.9249,
+        0.9643
+      ],
+      "recall_at_10": 0.97,
+      "mrr": 0.83,
+      "indexing_seconds_median": 1.5124,
+      "indexing_seconds_trials": [
+        1.5389,
+        1.4831,
+        1.5124
+      ],
+      "query_latency_ms_p50": 4.5029,
+      "query_latency_ms_p95": 7.093,
+      "in_process_baseline": false
+    },
+    "elasticsearch": {
+      "recall_at_1": 0.75,
+      "recall_at_3": 0.904,
+      "recall_at_5": 0.95,
+      "recall_at_5_ci95": [
+        0.9272,
+        0.9659
+      ],
+      "recall_at_10": 0.972,
+      "mrr": 0.832,
+      "indexing_seconds_median": 1.3969,
+      "indexing_seconds_trials": [
+        2.0384,
+        1.3969,
+        1.257
+      ],
+      "query_latency_ms_p50": 5.0203,
+      "query_latency_ms_p95": 6.9338,
+      "in_process_baseline": false
+    },
+    "exact-in-memory": {
+      "recall_at_1": 0.75,
+      "recall_at_3": 0.904,
+      "recall_at_5": 0.95,
+      "recall_at_5_ci95": [
+        0.9272,
+        0.9659
+      ],
+      "recall_at_10": 0.972,
+      "mrr": 0.832,
+      "indexing_seconds_median": 0.0011,
+      "indexing_seconds_trials": [
+        0.0014,
+        0.0011,
+        0.0011
+      ],
+      "query_latency_ms_p50": 2.3381,
+      "query_latency_ms_p95": 3.4144,
+      "in_process_baseline": true
+    }
+  },
+  "groundedness": {
+    "method": "Top-5 context per store; answers cached per identical context; a second, larger local model judges YES/NO. Judge and lexical scores are indicative, not ground truth.",
+    "stores": {
+      "qdrant": {
+        "sample": 25,
+        "answered": 25,
+        "abstained": 0,
+        "judge_supported_rate_of_answered": 0.8,
+        "judge_unparsable": 0,
+        "lexical_support_mean": 0.963,
+        "gold_answer_contained_rate": 0.8
+      },
+      "weaviate": {
+        "sample": 25,
+        "answered": 25,
+        "abstained": 0,
+        "judge_supported_rate_of_answered": 0.8,
+        "judge_unparsable": 0,
+        "lexical_support_mean": 0.963,
+        "gold_answer_contained_rate": 0.8
+      },
+      "elasticsearch": {
+        "sample": 25,
+        "answered": 25,
+        "abstained": 0,
+        "judge_supported_rate_of_answered": 0.8,
+        "judge_unparsable": 0,
+        "lexical_support_mean": 0.963,
+        "gold_answer_contained_rate": 0.8
+      }
+    },
+    "judge_control_unrelated_context": {
+      "judged": 25,
+      "false_yes_rate": 0
+    },
+    "distinct_generations": 25,
+    "examples": [
+      {
+        "store": "qdrant",
+        "question": "What is the Mongolian name for the original place of the Genghis Khan mausoleum?",
+        "answer": "Edsen Khoroo",
+        "gold": "Edsen Khoroo",
+        "judge_reply": "YES"
+      },
+      {
+        "store": "qdrant",
+        "question": "Tibetan art from which period is represented in the V\u0026A collection?",
+        "answer": "The Tibetan art from the 14th to the 19th century is represented in the V\u0026A collection.",
+        "gold": "from the 14th to the 19th century",
+        "judge_reply": "YES"
+      },
+      {
+        "store": "qdrant",
+        "question": "When did tides and currents similar to our current system begin?",
+        "answer": "7500 yr ago",
+        "gold": "7500 yr ago",
+        "judge_reply": "YES"
+      },
+      {
+        "store": "qdrant",
+        "question": "Who could be the subjects of a teacher\u0027s college investigation?",
+        "answer": "Teachers, administrators, volunteers, bus drivers, and other adults associated with education.",
+        "gold": "members",
+        "judge_reply": "NO"
+      },
+      {
+        "store": "qdrant",
+        "question": "What did Luther deny the rebels?",
+        "answer": "Luther denied the rebels the right to resist the secular government.",
+        "gold": "backing for the uprising",
+        "judge_reply": "YES"
+      }
+    ]
+  }
+}
